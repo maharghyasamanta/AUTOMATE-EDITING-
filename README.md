@@ -28,18 +28,33 @@ npm run build	Build the frontend for production
 npm run preview	Preview the production build
 npm run lint	Type-check with TypeScript
 Project Structure
+
 ├── server.ts          # Express server and Gemini API routes
+
 ├── src/
+
 │   ├── components/    # Views: story, characters, scenes, storyboard, audit
+
 │   ├── hooks/         # Auto-save hook
+
 │   ├── types/         # Shared TypeScript types
+
 │   └── utils/         # Helpers and tests
+
 └── public/            # Static assets
+
 API Routes
+
 Method	Route	Purpose
+
 GET	/api/health	Health check
+
 POST	/api/story	Generate the screenplay
+
 POST	/api/characters	Generate character profiles
+
 POST	/api/scenes	Generate scene breakdowns
+
 POST	/api/audit	Run the narrative audit
+
 POST	/api/storyboard	Generate storyboard panels
