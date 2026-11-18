@@ -131,6 +131,7 @@ export default function App() {
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
         onLoadDemo={handleLoadDemo}
+        onGoHome={() => setViewMode("landing")}
         projectTitle={activeProject.title}
         auditIssueCount={auditIssueCount}
       />
