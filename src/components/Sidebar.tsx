@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { LayoutGroup, MotionConfig, motion } from "motion/react";
 import {
   Film,
   FlaskConical,
@@ -79,6 +80,19 @@ export default function Sidebar({
 }: SidebarProps) {
   const desktopRef = useRef<HTMLDivElement>(null);
   const mobileRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const [clickPulse, setClickPulse] = useState<{
+    id: NavSection;
+    tick: number;
+  } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const supportsAtProperty =
@@ -106,6 +120,26 @@ export default function Sidebar({
     return () => cancelAnimationFrame(frameId);
   }, [mobileOpen]);
 
+  function handleSelectTab(id: NavSection, isMobileDrawer: boolean) {
+    setClickPulse((prev) => ({
+      id,
+      tick: (prev?.tick ?? 0) + 1,
+    }));
+    onSelectNav(id);
+
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+
+    if (isMobileDrawer) {
+      closeTimerRef.current = window.setTimeout(() => {
+        closeTimerRef.current = null;
+        onCloseMobile();
+      }, 220);
+    }
+  }
+
   function renderHomeButton(sizeClass: string, iconSizeClass: string) {
     return (
       <div className="liquid-home-capsule shrink-0">
@@ -127,72 +161,126 @@ export default function Sidebar({
     );
   }
 
-  function renderNavList() {
+  function renderNavList(scope: "desktop" | "mobile") {
+    const isMobileDrawer = scope === "mobile";
     return (
-      <nav aria-label="Studio Modules" className="space-y-2.5">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeNav === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => {
-                onSelectNav(item.id);
-                onCloseMobile();
-              }}
-              aria-current={isActive ? "page" : undefined}
-              className={`liquid-nav-btn group flex w-full items-center justify-between px-3 py-2.5 text-left focus-visible:outline-2 focus-visible:outline-violet-400 ${
-                isActive ? "text-white" : "text-zinc-300 hover:text-white"
-              }`}
-            >
-              <span className="liquid-edge-ring" aria-hidden="true" />
+      <LayoutGroup id={`sidebar-nav-${scope}`}>
+        <nav aria-label="Studio Modules" className="space-y-2.5">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeNav === item.id;
+            const isClicked = clickPulse?.id === item.id;
+            const pulseKey = isClicked ? clickPulse.tick : 0;
 
-              <div className="relative z-10 flex items-center gap-3 min-w-0">
-                <span
-                  className={`liquid-icon-orb flex h-9 w-9 shrink-0 items-center justify-center ${
-                    isActive
-                      ? "liquid-icon-orb-active text-white"
-                      : "text-zinc-400 group-hover:text-blue-300 group-hover:border-violet-400/35"
-                  }`}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                </span>
-                <div className="min-w-0">
-                  <div
-                    className={`text-sm font-semibold leading-tight truncate ${
+            return (
+              <motion.button
+                key={item.id}
+                type="button"
+                onClick={() => handleSelectTab(item.id, isMobileDrawer)}
+                aria-current={isActive ? "page" : undefined}
+                whileHover={{ y: -1 }}
+                whileTap={{ scaleX: 1.03, scaleY: 0.94 }}
+                animate={
+                  isClicked
+                    ? {
+                        scaleX: [1.03, 0.982, 1.012, 1],
+                        scaleY: [0.94, 1.03, 0.992, 1],
+                      }
+                    : { scaleX: 1, scaleY: 1 }
+                }
+                transition={{
+                  duration: 0.36,
+                  ease: [0.22, 1.28, 0.36, 1],
+                }}
+                style={{ transformOrigin: "center" }}
+                className={`liquid-nav-btn group flex w-full items-center justify-between px-3 py-2.5 text-left focus-visible:outline-2 focus-visible:outline-violet-400 ${
+                  isActive ? "text-white" : "text-zinc-300 hover:text-white"
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId={`liquid-active-glass-pill-${scope}`}
+                    className="liquid-active-pill"
+                    aria-hidden="true"
+                    transition={{
+                      type: "spring",
+                      stiffness: 340,
+                      damping: 26,
+                      mass: 0.85,
+                    }}
+                  />
+                )}
+
+                {isClicked && (
+                  <span className="liquid-sheen-clip" aria-hidden="true">
+                    <motion.span
+                      key={`sheen-${pulseKey}`}
+                      className="liquid-click-sheen"
+                      initial={{ x: "-115%", opacity: 0.85 }}
+                      animate={{ x: "120%", opacity: 0 }}
+                      transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+                    />
+                  </span>
+                )}
+
+                <span className="liquid-edge-ring" aria-hidden="true" />
+
+                <div className="relative z-10 flex items-center gap-3 min-w-0">
+                  <motion.span
+                    animate={
+                      isClicked
+                        ? { scale: [0.88, 1.14, 1] }
+                        : { scale: 1 }
+                    }
+                    transition={{
+                      type: "spring",
+                      stiffness: 460,
+                      damping: 18,
+                    }}
+                    className={`liquid-icon-orb flex h-9 w-9 shrink-0 items-center justify-center ${
                       isActive
-                        ? "text-white"
-                        : "text-zinc-200 group-hover:text-white"
+                        ? "liquid-icon-orb-active text-white"
+                        : "text-zinc-400 group-hover:text-blue-300 group-hover:border-violet-400/35"
                     }`}
                   >
-                    {item.label}
-                  </div>
-                  <div
-                    className={`mt-0.5 text-xs truncate ${
-                      isActive
-                        ? "text-blue-100/85"
-                        : "text-zinc-400 group-hover:text-zinc-300"
-                    }`}
-                  >
-                    {item.subtitle}
+                    <Icon className="h-4 w-4 shrink-0" />
+                  </motion.span>
+                  <div className="min-w-0">
+                    <div
+                      className={`text-sm font-semibold leading-tight truncate ${
+                        isActive
+                          ? "text-white"
+                          : "text-zinc-200 group-hover:text-white"
+                      }`}
+                    >
+                      {item.label}
+                    </div>
+                    <div
+                      className={`mt-0.5 text-xs truncate ${
+                        isActive
+                          ? "text-blue-100/85"
+                          : "text-zinc-400 group-hover:text-zinc-300"
+                      }`}
+                    >
+                      {item.subtitle}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {item.id === "auditor" && auditIssueCount !== null && (
-                <span
-                  className={`relative z-10 ml-2 shrink-0 font-mono text-xs font-semibold tabular-nums ${
-                    auditIssueCount > 0 ? "text-rose-300" : "text-emerald-300"
-                  }`}
-                >
-                  {auditIssueCount}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
+                {item.id === "auditor" && auditIssueCount !== null && (
+                  <span
+                    className={`relative z-10 ml-2 shrink-0 font-mono text-xs font-semibold tabular-nums ${
+                      auditIssueCount > 0 ? "text-rose-300" : "text-emerald-300"
+                    }`}
+                  >
+                    {auditIssueCount}
+                  </span>
+                )}
+              </motion.button>
+            );
+          })}
+        </nav>
+      </LayoutGroup>
     );
   }
 
@@ -218,7 +306,7 @@ export default function Sidebar({
   }
 
   return (
-    <>
+    <MotionConfig reducedMotion="user">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:block lg:w-80 lg:shrink-0 lg:sticky lg:top-0 lg:h-screen">
         <div
@@ -244,8 +332,8 @@ export default function Sidebar({
             </p>
           </div>
 
-          <div className="flex-1 px-3.5 py-4 overflow-y-auto">
-            {renderNavList()}
+          <div className="flex-1 px-3.5 py-4 overflow-y-auto overflow-x-hidden">
+            {renderNavList("desktop")}
           </div>
 
           {renderFooter()}
@@ -284,17 +372,17 @@ export default function Sidebar({
               </button>
             </div>
 
-            <div className="flex flex-1 items-start gap-3 px-3 py-4 overflow-y-auto">
+            <div className="flex flex-1 items-start gap-3 px-3 py-4 overflow-y-auto overflow-x-hidden">
               <div className="pt-0.5 shrink-0">
                 {renderHomeButton("h-12 w-12", "h-5 w-5")}
               </div>
-              <div className="flex-1 min-w-0">{renderNavList()}</div>
+              <div className="flex-1 min-w-0">{renderNavList("mobile")}</div>
             </div>
 
             {renderFooter()}
           </div>
         </div>
       )}
-    </>
+    </MotionConfig>
   );
 }
